@@ -26,6 +26,7 @@ import {
   Image,
   Link,
   Highlighter,
+  Smile,
 } from 'lucide-react';
 
 interface CommandItem {
@@ -42,6 +43,15 @@ const commands: CommandItem[] = [
     icon: <Type className="h-5 w-5" />,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).setParagraph().run();
+    },
+  },
+  // ... existing commands ...
+  {
+    title: 'Emoji',
+    description: 'Insert an emoji.',
+    icon: <Smile className="h-5 w-5" />,
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('😀').run();
     },
   },
   {
@@ -125,6 +135,14 @@ const commands: CommandItem[] = [
     },
   },
   {
+    title: 'Data Table',
+    description: 'Add an advanced sortable data table.',
+    icon: <Table className="h-5 w-5" />,
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertDataTable().run();
+    },
+  },
+  {
     title: 'Math Equation',
     description: 'Add LaTeX math equation.',
     icon: <Calculator className="h-5 w-5" />,
@@ -177,10 +195,17 @@ const commands: CommandItem[] = [
     description: 'Upload or embed an image.',
     icon: <Image className="h-5 w-5" />,
     command: ({ editor, range }) => {
-      const url = window.prompt('Enter image URL:');
-      if (url) {
-        editor.chain().focus().deleteRange(range).setImage({ src: url }).run();
-      }
+      const event = new CustomEvent('open-link-dialog', {
+        detail: {
+          title: 'Insert Image',
+          type: 'image',
+          initialValue: '',
+          onConfirm: (url: string) => {
+            editor.chain().focus().deleteRange(range).setImage({ src: url }).run();
+          }
+        }
+      });
+      window.dispatchEvent(event);
     },
   },
   {
@@ -188,10 +213,17 @@ const commands: CommandItem[] = [
     description: 'Create a hyperlink.',
     icon: <Link className="h-5 w-5" />,
     command: ({ editor, range }) => {
-      const url = window.prompt('Enter URL:');
-      if (url) {
-        editor.chain().focus().deleteRange(range).setLink({ href: url }).run();
-      }
+      const event = new CustomEvent('open-link-dialog', {
+        detail: {
+          title: 'Insert Link',
+          type: 'link',
+          initialValue: '',
+          onConfirm: (url: string) => {
+            editor.chain().focus().deleteRange(range).setLink({ href: url }).run();
+          }
+        }
+      });
+      window.dispatchEvent(event);
     },
   },
   {

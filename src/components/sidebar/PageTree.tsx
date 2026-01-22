@@ -21,6 +21,7 @@ interface PageTreeProps {
   onToggleFavorite: (pageId: string) => void;
   getChildPages: (parentId: string | null) => Page[];
   showFavoriteOnly?: boolean;
+  isSearch?: boolean;
 }
 
 interface PageItemProps {
@@ -34,6 +35,7 @@ interface PageItemProps {
   onToggleFavorite: (pageId: string) => void;
   getChildPages: (parentId: string | null) => Page[];
   showFavoriteOnly?: boolean;
+  isSearch?: boolean;
 }
 
 function PageItem({
@@ -47,11 +49,12 @@ function PageItem({
   onToggleFavorite,
   getChildPages,
   showFavoriteOnly,
+  isSearch,
 }: PageItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const children = showFavoriteOnly ? [] : getChildPages(page.id);
+  const children = (showFavoriteOnly || isSearch) ? [] : getChildPages(page.id);
   const hasChildren = children.length > 0;
   const isActive = currentPageId === page.id;
 
@@ -61,12 +64,12 @@ function PageItem({
         className={cn(
           'group flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-colors',
           isActive ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent/50',
-          level > 0 && 'ml-4'
+          level > 0 && !isSearch && 'ml-4'
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {!showFavoriteOnly && (
+        {!showFavoriteOnly && !isSearch && (
           <button
             className="p-0.5 rounded hover:bg-sidebar-accent"
             onClick={(e) => {
@@ -113,7 +116,7 @@ function PageItem({
               <Star className={cn("h-3.5 w-3.5", page.is_favorite && "fill-current")} />
             </Button>
             
-            {!showFavoriteOnly && (
+            {!showFavoriteOnly && !isSearch && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -188,6 +191,7 @@ function PageItem({
               onDuplicatePage={onDuplicatePage}
               onToggleFavorite={onToggleFavorite}
               getChildPages={getChildPages}
+              isSearch={isSearch}
             />
           ))}
         </div>
@@ -206,8 +210,9 @@ export function PageTree({
   onToggleFavorite,
   getChildPages,
   showFavoriteOnly,
+  isSearch,
 }: PageTreeProps) {
-  const rootPages = showFavoriteOnly ? pages : getChildPages(null);
+  const rootPages = (showFavoriteOnly || isSearch) ? pages : getChildPages(null);
 
   return (
     <div className="space-y-0.5">
@@ -224,6 +229,7 @@ export function PageTree({
           onToggleFavorite={onToggleFavorite}
           getChildPages={getChildPages}
           showFavoriteOnly={showFavoriteOnly}
+          isSearch={isSearch}
         />
       ))}
     </div>

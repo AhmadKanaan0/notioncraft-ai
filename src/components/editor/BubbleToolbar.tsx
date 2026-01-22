@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Editor } from '@tiptap/react';
-import { 
-  Bold, 
-  Italic, 
-  Underline as UnderlineIcon, 
-  Strikethrough, 
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough,
   Code,
   Link,
   Highlighter,
@@ -17,10 +17,18 @@ import {
   Superscript,
   Palette,
   Unlink,
+  Type,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface BubbleToolbarProps {
@@ -46,23 +54,46 @@ const TEXT_COLORS = [
   { name: 'Purple', value: '#a855f7' },
 ];
 
+const FONT_FAMILIES = [
+  { name: 'Default', value: '' },
+  { name: 'Sans Serif', value: 'ui-sans-serif, system-ui, sans-serif' },
+  { name: 'Serif', value: 'ui-serif, Georgia, serif' },
+  { name: 'Mono', value: 'ui-monospace, monospace' },
+  { name: 'Inter', value: 'Inter, sans-serif' },
+  { name: 'Georgia', value: 'Georgia, serif' },
+  { name: 'Comic Sans', value: '"Comic Sans MS", cursive' },
+];
+
+const FONT_SIZES = [
+  { name: 'Small', value: '12px' },
+  { name: 'Normal', value: '' },
+  { name: 'Large', value: '18px' },
+  { name: 'XL', value: '24px' },
+  { name: 'XXL', value: '32px' },
+];
+
 export function BubbleToolbar({ editor }: BubbleToolbarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [fontFamilyOpen, setFontFamilyOpen] = useState(false);
+  const [fontSizeOpen, setFontSizeOpen] = useState(false);
+  const [highlightOpen, setHighlightOpen] = useState(false);
+  const [textColorOpen, setTextColorOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const updatePosition = useCallback(() => {
     if (!editor) return;
-    
+
     const { from, to } = editor.state.selection;
     const hasSelection = from !== to;
-    
+
     if (!hasSelection) {
       // Don't hide if a popover is open
-      if (!popoverOpen && !showLinkInput) {
+      const isAnyPopoverOpen = showLinkInput || fontFamilyOpen || fontSizeOpen || highlightOpen || textColorOpen;
+      if (!isAnyPopoverOpen) {
         setIsVisible(false);
       }
       return;
@@ -71,23 +102,39 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
     const { view } = editor;
     const start = view.coordsAtPos(from);
     const end = view.coordsAtPos(to);
-    
-    const left = (start.left + end.left) / 2;
-    const top = start.top - 50;
-    
+
+    let left = (start.left + end.left) / 2;
+    let top = start.top - 50;
+
+    // Boundary constraints
+    const padding = 20;
+    const toolbarWidth = toolbarRef.current?.offsetWidth || 400; // Fallback to estimated width
+    const toolbarHeight = toolbarRef.current?.offsetHeight || 44;
+
+    // Viewport width check
+    const minLeft = toolbarWidth / 2 + padding;
+    const maxLeft = window.innerWidth - toolbarWidth / 2 - padding;
+    left = Math.max(minLeft, Math.min(maxLeft, left));
+
+    // Viewport height check (top)
+    if (top < padding) {
+      top = end.bottom + 10; // Show below selection if no space above
+    }
+
     setPosition({ top, left });
     setIsVisible(true);
-  }, [editor, popoverOpen, showLinkInput]);
+  }, [editor, showLinkInput, fontFamilyOpen, fontSizeOpen, highlightOpen, textColorOpen]);
 
   useEffect(() => {
     if (!editor) return;
 
     editor.on('selectionUpdate', updatePosition);
-    
+
     const handleBlur = () => {
       // Delay to allow toolbar interaction
       setTimeout(() => {
-        if (!showLinkInput && !popoverOpen) {
+        const isAnyPopoverOpen = showLinkInput || fontFamilyOpen || fontSizeOpen || highlightOpen || textColorOpen;
+        if (!isAnyPopoverOpen) {
           setIsVisible(false);
         }
       }, 200);
@@ -95,26 +142,53 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
 
     editor.on('blur', handleBlur);
 
+    editor.on('blur', handleBlur);
+
+    const handleGlobalDragStart = () => {
+      setIsDragging(true);
+      document.body.classList.add('is-dragging');
+    };
+
+    const handleGlobalDragEnd = () => {
+      setIsDragging(false);
+      document.body.classList.remove('is-dragging');
+    };
+
+    // Use window events to capture drags from anywhere (like the handle)
+    window.addEventListener('dragstart', handleGlobalDragStart);
+    window.addEventListener('dragend', handleGlobalDragEnd);
+    window.addEventListener('drop', handleGlobalDragEnd);
+
     return () => {
       editor.off('selectionUpdate', updatePosition);
       editor.off('blur', handleBlur);
+      window.removeEventListener('dragstart', handleGlobalDragStart);
+      window.removeEventListener('dragend', handleGlobalDragEnd);
+      window.removeEventListener('drop', handleGlobalDragEnd);
     };
-  }, [editor, updatePosition, showLinkInput, popoverOpen]);
+  }, [editor, updatePosition, showLinkInput, fontFamilyOpen, fontSizeOpen, highlightOpen, textColorOpen]);
 
   const handleSetLink = () => {
-    if (linkUrl) {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
-      setLinkUrl('');
-      setShowLinkInput(false);
-    }
+    const previousUrl = editor.getAttributes('link').href || '';
+
+    const event = new CustomEvent('open-link-dialog', {
+      detail: {
+        title: previousUrl ? 'Edit Link' : 'Insert Link',
+        type: 'link',
+        initialValue: previousUrl,
+        onConfirm: (url: string) => {
+          editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+        }
+      }
+    });
+    window.dispatchEvent(event);
   };
 
   const handleRemoveLink = () => {
     editor.chain().focus().unsetLink().run();
-    setShowLinkInput(false);
   };
 
-  if (!editor || !isVisible) {
+  if (!editor) {
     return null;
   }
 
@@ -152,14 +226,110 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
   const Divider = () => <div className="w-px h-5 bg-border mx-0.5" />;
 
   return (
-    <div 
-      className="fixed z-50 flex items-center gap-0.5 p-1 rounded-lg bg-popover border border-border shadow-lg animate-fade-in"
-      style={{ 
-        top: position.top, 
+    <div
+      ref={toolbarRef}
+      className={cn(
+        "fixed z-50 flex items-center gap-0.5 p-1 rounded-lg bg-popover border border-border shadow-lg transition-all duration-200",
+        "overflow-x-auto scrollbar-hide",
+        isVisible && !isDragging ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none"
+      )}
+      style={{
+        top: position.top,
         left: position.left,
         transform: 'translateX(-50%)',
+        maxWidth: 'calc(100vw - 20px)',
       }}
     >
+      {/* Font selectors */}
+      <Popover open={fontFamilyOpen} onOpenChange={setFontFamilyOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onMouseDown={(e) => e.preventDefault()}
+            title="Font Family"
+          >
+            <Type className="h-4 w-4 mr-1" />
+            Font
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-40 p-1" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+          {FONT_FAMILIES.map((font) => (
+            <Button
+              key={font.value}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              style={{ fontFamily: font.value || 'inherit' }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (font.value) {
+                  // Try the extension command, fallback to mark if not available
+                  if (typeof editor.commands.setFontFamily === 'function') {
+                    editor.chain().focus().setFontFamily(font.value).run();
+                  } else {
+                    editor.chain().focus().setMark('textStyle', { fontFamily: font.value }).run();
+                  }
+                } else {
+                  if (typeof editor.commands.unsetFontFamily === 'function') {
+                    editor.chain().focus().unsetFontFamily().run();
+                  } else {
+                    editor.chain().focus().unsetMark('textStyle').run();
+                  }
+                }
+              }}
+            >
+              {font.name}
+            </Button>
+          ))}
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={fontSizeOpen} onOpenChange={setFontSizeOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onMouseDown={(e) => e.preventDefault()}
+            title="Font Size"
+          >
+            Size
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-24 p-1" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+          {FONT_SIZES.map((size) => (
+            <Button
+              key={size.value}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (size.value) {
+                  if (typeof editor.commands.setFontSize === 'function') {
+                    editor.chain().focus().setFontSize(size.value).run();
+                  } else {
+                    editor.chain().focus().setMark('textStyle', { fontSize: size.value }).run();
+                  }
+                } else {
+                  if (typeof editor.commands.unsetFontSize === 'function') {
+                    editor.chain().focus().unsetFontSize().run();
+                  } else {
+                    editor.chain().focus().unsetMark('textStyle').run();
+                  }
+                }
+              }}
+            >
+              {size.name}
+            </Button>
+          ))}
+        </PopoverContent>
+      </Popover>
+
+      <Divider />
+
       {/* Text formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -168,7 +338,7 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       >
         <Bold className="h-4 w-4" />
       </ToolbarButton>
-      
+
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         isActive={editor.isActive('italic')}
@@ -176,7 +346,7 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       >
         <Italic className="h-4 w-4" />
       </ToolbarButton>
-      
+
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         isActive={editor.isActive('underline')}
@@ -184,7 +354,7 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       >
         <UnderlineIcon className="h-4 w-4" />
       </ToolbarButton>
-      
+
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
         isActive={editor.isActive('strike')}
@@ -200,7 +370,7 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       >
         <Code className="h-4 w-4" />
       </ToolbarButton>
-      
+
       <Divider />
 
       {/* Subscript/Superscript */}
@@ -223,46 +393,29 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       <Divider />
 
       {/* Link */}
-      <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            onMouseDown={(e) => e.preventDefault()}
-            className={cn(
-              'h-8 w-8 p-0 hover:bg-accent',
-              editor.isActive('link') && 'bg-accent text-accent-foreground'
-            )}
-            title="Add Link"
+      <div className="flex items-center">
+        <ToolbarButton
+          onClick={handleSetLink}
+          isActive={editor.isActive('link')}
+          title="Add/Edit Link"
+        >
+          <Link className="h-4 w-4" />
+        </ToolbarButton>
+        {editor.isActive('link') && (
+          <ToolbarButton
+            onClick={handleRemoveLink}
+            title="Remove Link"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <Link className="h-4 w-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 p-2" align="start">
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://example.com"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSetLink()}
-              className="flex-1 h-8 text-sm"
-            />
-            <Button size="sm" className="h-8" onClick={handleSetLink}>
-              Add
-            </Button>
-            {editor.isActive('link') && (
-              <Button size="sm" variant="destructive" className="h-8" onClick={handleRemoveLink}>
-                <Unlink className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+            <Unlink className="h-4 w-4" />
+          </ToolbarButton>
+        )}
+      </div>
 
       <Divider />
 
       {/* Highlight */}
-      <Popover onOpenChange={setPopoverOpen}>
+      <Popover open={highlightOpen} onOpenChange={setHighlightOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -300,7 +453,7 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       </Popover>
 
       {/* Text Color */}
-      <Popover onOpenChange={setPopoverOpen}>
+      <Popover open={textColorOpen} onOpenChange={setTextColorOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"

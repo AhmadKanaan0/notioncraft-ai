@@ -4,6 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from '@/components/ui/drawer';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -21,10 +29,11 @@ export function AIChatSidebar({ isOpen, onClose, onInsertContent }: AIChatSideba
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -98,21 +107,9 @@ export function AIChatSidebar({ isOpen, onClose, onInsertContent }: AIChatSideba
     }
   };
 
-  if (!isOpen) return null;
-
-  return (
-    <div className="w-80 border-l bg-background flex flex-col max-h-full overflow-hidden">
-      <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b bg-background">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">AI Assistant</h3>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+  const ChatContent = () => (
+    <>
+      <ScrollArea className="flex-1 p-4">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
@@ -147,12 +144,12 @@ export function AIChatSidebar({ isOpen, onClose, onInsertContent }: AIChatSideba
                   <p className="whitespace-pre-wrap">{message.content}</p>
                   {message.role === 'assistant' && message.content && onInsertContent && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="mt-2 h-7 text-xs"
+                      className="mt-2 h-7 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       onClick={() => handleInsert(message.content)}
                     >
-                      Insert into document
+                      📄 Insert into document
                     </Button>
                   )}
                 </div>
@@ -173,11 +170,12 @@ export function AIChatSidebar({ isOpen, onClose, onInsertContent }: AIChatSideba
                 </div>
               </div>
             )}
+            <div ref={scrollRef} />
           </div>
         )}
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="sticky bottom-0 p-4 border-t bg-background">
+      <form onSubmit={handleSubmit} className="flex-none p-4 border-t bg-background sticky bottom-0 z-10">
         <div className="flex gap-2">
           <Input
             value={input}
@@ -190,7 +188,52 @@ export function AIChatSidebar({ isOpen, onClose, onInsertContent }: AIChatSideba
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {input.length} characters
+        </div>
       </form>
-    </div>
+    </>
+  );
+
+  // Desktop: Sidebar
+  if (isDesktop) {
+    if (!isOpen) return null;
+    return (
+      <div className="w-80 border-l bg-background flex flex-col h-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b bg-background sticky top-0 z-10">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">AI Assistant</h3>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <ChatContent />
+      </div>
+    );
+  }
+
+  // Mobile: Drawer
+  return (
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent className="max-h-[85vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between">
+          <DrawerTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            AI Assistant
+          </DrawerTitle>
+          <DrawerClose asChild>
+            <Button variant="ghost" size="sm">
+              <X className="h-4 w-4" />
+            </Button>
+          </DrawerClose>
+        </DrawerHeader>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <ChatContent />
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
+

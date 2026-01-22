@@ -130,7 +130,40 @@
   min-height: 100%;
 }
 
-.tiptap p.is-editor-empty:first-child::before {
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.ProseMirror [data-id] {
+  border: 3px solid #0d0d0d;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  position: relative;
+  margin-top: 1.5rem;
+  padding: 2rem 1rem 1rem;
+}
+
+.ProseMirror [data-id]::before {
+  content: attr(data-id);
+  background-color: #0d0d0d;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #fff;
+  position: absolute;
+  top: 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.tiptap p.is-editor-empty::before {
   content: attr(data-placeholder);
   float: left;
   color: hsl(var(--muted-foreground));
@@ -214,7 +247,7 @@
 }
 
 .tiptap blockquote {
-  border-left: 3px solid hsl(var(--border));
+  border-left: 3px solid var(--border);
   padding-left: 1rem;
   margin-left: 0;
   margin-right: 0;
@@ -350,12 +383,12 @@
 
 .tiptap hr {
   border: none;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   margin: 1.5rem 0;
 }
 
 .tiptap a {
-  color: hsl(var(--notion-blue));
+  color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -371,7 +404,7 @@
 
 .tiptap table td,
 .tiptap table th {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
   box-sizing: border-box;
   min-width: 1em;
   padding: 0.5rem 0.75rem;
@@ -380,13 +413,14 @@
 }
 
 .tiptap table th {
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   font-weight: 600;
   text-align: left;
 }
 
 .tiptap table .selectedCell:after {
-  background: hsl(var(--primary) / 0.1);
+  background: var(--primary);
+  opacity: 0.1;
   content: "";
   left: 0;
   right: 0;
@@ -402,9 +436,11 @@
   bottom: -2px;
   position: absolute;
   right: -2px;
-  pointer-events: none;
+  pointer-events: auto;
   top: 0;
   width: 4px;
+  cursor: col-resize;
+  z-index: 20;
 }
 
 .tiptap .tableWrapper {
@@ -413,8 +449,8 @@
 
 /* Slash command menu */
 .slash-command-menu {
-  background: hsl(var(--popover));
-  border: 1px solid hsl(var(--border));
+  background: var(--popover);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   padding: 0.5rem;
@@ -431,11 +467,14 @@
   border-radius: calc(var(--radius) - 2px);
   cursor: pointer;
   transition: background-color 0.1s;
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 .slash-command-item:hover,
 .slash-command-item.is-selected {
-  background: hsl(var(--notion-hover));
+  background: var(--accent);
 }
 
 .slash-command-item-icon {
@@ -445,18 +484,22 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: calc(var(--radius) - 2px);
-  background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 
 .slash-command-item-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   flex: 1;
 }
 
 .slash-command-item-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: hsl(var(--foreground));
+  color: var(--foreground);
 }
 
 .slash-command-item-description {
@@ -466,8 +509,8 @@
 
 /* AI inline content styling */
 .ai-generated {
-  background: linear-gradient(135deg, hsl(var(--notion-blue-light)) 0%, transparent 100%);
-  border-left: 2px solid hsl(var(--notion-blue));
+  background: linear-gradient(135deg, var(--primary) 0%, transparent 100%);
+  border-left: 2px solid var(--primary);
   padding-left: 0.75rem;
   margin-left: -0.75rem;
 }
@@ -490,7 +533,7 @@
 }
 
 .tiptap img:hover {
-  box-shadow: 0 0 0 2px hsl(var(--primary));
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .tiptap img.ProseMirror-selectednode {
@@ -513,7 +556,7 @@
 
 /* Link styles */
 .tiptap a {
-  color: hsl(var(--primary));
+  color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -537,40 +580,37 @@
 
 /* Selection styles */
 .tiptap ::selection {
-  background: hsl(var(--primary) / 0.2);
+  background: var(--primary);
+  opacity: 0.2;
 }
 
-/* Block handle styles */
-.tiptap > * {
-  position: relative;
+/* Block handle styles (Official Tiptap React Drag Handle) */
+[data-drag-handle] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 100000 !important; /* Extreme high */
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: auto !important;
 }
 
-.tiptap > *:hover > .block-handle {
-  opacity: 1;
+@media (max-width: 640px) {
+  [data-drag-handle] {
+    /* Ensure handle doesn't go off-screen left on small mobile */
+    min-width: 2rem;
+    padding-left: 0.5rem;
+  }
 }
 
-.block-handle {
-  position: absolute;
-  left: -2.5rem;
-  top: 0;
+.drag-handle {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
-  opacity: 0;
-  transition: opacity 0.15s;
+  justify-content: center;
 }
 
-.block-handle:hover {
-  opacity: 1;
-}
-
-/* Drag cursor for block handle */
-.block-handle .drag-handle {
-  cursor: grab;
-}
-
-.block-handle .drag-handle:active {
-  cursor: grabbing;
+.drag-handle svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 /* Selected block styling */
@@ -585,8 +625,45 @@
   opacity: 0.5;
 }
 
-.tiptap .drop-cursor {
-  background-color: hsl(var(--primary));
-  height: 2px;
-  width: 100%;
+/* Drop indicator styling (Very Aggressive) */
+.tiptap .ProseMirror-dropcursor,
+.tiptap .drop-cursor,
+.ProseMirror-dropcursor,
+.drop-cursor {
+  background-color: #3b82f6 !important; /* bright blue */
+  display: block !important;
+  height: 2px !important;
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* For better positioning between blocks */
+.tiptap .ProseMirror-dropcursor::after {
+  content: "" !important;
+  position: absolute !important;
+  top: -4px !important;
+  left: 0 !important;
+  width: 10px !important;
+  height: 10px !important;
+  background-color: #3b82f6 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 2px white !important;
+}
+
+/* Global Drag Indicator for the page */
+body.is-dragging::after {
+  content: "Dragging Block...";
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: black;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  z-index: 9999;
+  opacity: 0.8;
+  pointer-events: none;
 }

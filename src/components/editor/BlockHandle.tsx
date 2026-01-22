@@ -1,7 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { GripVertical, Plus, Trash2, Copy } from 'lucide-react';
+import { Editor } from '@tiptap/react';
+import {
+  GripVertical,
+  Trash2,
+  Copy,
+  Type,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  CheckSquare,
+  Quote,
+  Code,
+  ChevronRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,72 +24,161 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface BlockHandleProps {
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onAddBlockAbove: () => void;
-  onAddBlockBelow: () => void;
+  editor: Editor;
+  position: { top: number; left: number };
+  onClose: () => void;
 }
 
-export function BlockHandle({
-  onDelete,
-  onDuplicate,
-  onAddBlockAbove,
-  onAddBlockBelow,
-}: BlockHandleProps) {
-  const [isOpen, setIsOpen] = useState(false);
+const TURN_INTO_OPTIONS = [
+  {
+    title: 'Text',
+    icon: Type,
+    action: (editor: Editor) => editor.chain().focus().setParagraph().run(),
+  },
+  {
+    title: 'Heading 1',
+    icon: Heading1,
+    action: (editor: Editor) => editor.chain().focus().setHeading({ level: 1 }).run(),
+  },
+  {
+    title: 'Heading 2',
+    icon: Heading2,
+    action: (editor: Editor) => editor.chain().focus().setHeading({ level: 2 }).run(),
+  },
+  {
+    title: 'Heading 3',
+    icon: Heading3,
+    action: (editor: Editor) => editor.chain().focus().setHeading({ level: 3 }).run(),
+  },
+  {
+    title: 'Bullet List',
+    icon: List,
+    action: (editor: Editor) => editor.chain().focus().toggleBulletList().run(),
+  },
+  {
+    title: 'Numbered List',
+    icon: ListOrdered,
+    action: (editor: Editor) => editor.chain().focus().toggleOrderedList().run(),
+  },
+  {
+    title: 'To-do List',
+    icon: CheckSquare,
+    action: (editor: Editor) => editor.chain().focus().toggleTaskList().run(),
+  },
+  {
+    title: 'Quote',
+    icon: Quote,
+    action: (editor: Editor) => editor.chain().focus().toggleBlockquote().run(),
+  },
+  {
+    title: 'Code Block',
+    icon: Code,
+    action: (editor: Editor) => editor.chain().focus().toggleCodeBlock().run(),
+  },
+];
+
+export function BlockHandle({ editor, position, onClose }: BlockHandleProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      onClose();
+    }
+  };
+
+  const handleDelete = () => {
+    editor.chain().focus().deleteNode(editor.state.selection.$anchor.parent.type.name).run();
+    onClose();
+  };
+
+  const handleDuplicate = () => {
+    const { state } = editor;
+    const { selection } = state;
+    const { $anchor } = selection;
+    
+    // Get the current node
+    const node = $anchor.parent;
+    const pos = $anchor.before($anchor.depth);
+    const endPos = $anchor.after($anchor.depth);
+    
+    // Insert a copy after the current node
+    editor.chain()
+      .focus()
+      .insertContentAt(endPos, node.toJSON())
+      .run();
+    
+    onClose();
+  };
+
+  const handleTurnInto = (action: (editor: Editor) => void) => {
+    action(editor);
+    onClose();
+  };
 
   return (
     <div
-      className={cn(
-        'absolute -left-10 top-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity',
-        isOpen && 'opacity-100'
-      )}
+      className="fixed z-50"
+      style={{
+        top: position.top,
+        left: position.left,
+      }}
     >
-      {/* Add block button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-accent"
-        onClick={onAddBlockBelow}
-        title="Add block below"
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </Button>
-
-      {/* Drag handle with menu */}
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-accent cursor-grab active:cursor-grabbing"
-            title="Drag to move · Click for options"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-accent cursor-grab active:cursor-grabbing"
           >
-            <GripVertical className="h-3.5 w-3.5" />
+            <GripVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuItem onClick={onAddBlockAbove}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add block above
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onAddBlockBelow}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add block below
-          </DropdownMenuItem>
+        <DropdownMenuContent align="start" className="w-52">
+          {/* Turn Into Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="flex items-center">
+              <Type className="h-4 w-4 mr-2" />
+              Turn into
+              <ChevronRight className="h-4 w-4 ml-auto" />
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-48">
+                {TURN_INTO_OPTIONS.map((option) => (
+                  <DropdownMenuItem
+                    key={option.title}
+                    onClick={() => handleTurnInto(option.action)}
+                  >
+                    <option.icon className="h-4 w-4 mr-2" />
+                    {option.title}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onDuplicate}>
+
+          {/* Duplicate */}
+          <DropdownMenuItem onClick={handleDuplicate}>
             <Copy className="h-4 w-4 mr-2" />
             Duplicate
           </DropdownMenuItem>
+
           <DropdownMenuSeparator />
+
+          {/* Delete */}
           <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={onDelete}
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            onClick={handleDelete}
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete

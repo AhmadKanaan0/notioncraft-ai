@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Smile } from 'lucide-react';
 import { Page } from '@/hooks/usePages';
 import { Button } from '@/components/ui/button';
+import { PageTags } from './PageTags';
 import {
   Popover,
   PopoverContent,
@@ -100,6 +101,7 @@ export function PageHeader({ page, onUpdatePage }: PageHeaderProps) {
           {page.title || 'Untitled'}
         </h1>
       )}
+      <PageTags pageId={page.id} />
     </div>
   );
 }

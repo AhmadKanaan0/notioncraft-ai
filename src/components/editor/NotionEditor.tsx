@@ -5,6 +5,7 @@ import Underline from '@tiptap/extension-underline';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Table } from '@tiptap/extension-table';
+import { getHierarchicalIndexes, TableOfContents } from '@tiptap/extension-table-of-contents';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
@@ -12,19 +13,27 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
+import DragHandle from '@tiptap/extension-drag-handle';
 import Image from '@tiptap/extension-image';
 import CharacterCount from '@tiptap/extension-character-count';
+import Dropcursor from '@tiptap/extension-dropcursor';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
 import Color from '@tiptap/extension-color';
 import { common, createLowlight } from 'lowlight';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { SlashCommands } from './SlashCommands';
 import { BubbleToolbar } from './BubbleToolbar';
+import { ContentItemMenu } from './menus/ContentItemMenu/ContentItemMenu';
+import { TableBubbleMenu } from './TableBubbleMenu';
 import { Callout } from './extensions/CalloutExtension';
 import { Toggle } from './extensions/ToggleExtension';
 import { MathBlock, MathInline } from './extensions/MathExtension';
+import { DataTable } from './extensions/DataTableExtension';
+import { FontSize } from './extensions/FontSizeExtension';
+import { LinkDialog } from './modals/LinkDialog';
 
 const lowlight = createLowlight(common);
 
@@ -32,10 +41,13 @@ interface NotionEditorProps {
   content: any;
   onUpdate: (content: any) => void;
   placeholder?: string;
+  pageId?: string;
+  onToCUpdate?: (items: any[]) => void;
 }
 
-export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for commands..." }: NotionEditorProps) {
+export const NotionEditor = forwardRef<any, NotionEditorProps>(({ content, onUpdate, placeholder = "Type '/' for commands...", pageId, onToCUpdate }, ref) => {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [counts, setCounts] = useState({ characters: 0, words: 0 });
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -44,15 +56,23 @@ export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for co
         heading: {
           levels: [1, 2, 3],
         },
-        dropcursor: {
-          color: 'hsl(var(--primary))',
-          width: 2,
-        },
+        dropcursor: false,
         codeBlock: false,
+      }),
+      Dropcursor.configure({
+        color: 'hsl(var(--primary))',
+        width: 3,
+      }),
+      TableOfContents.configure({
+        getIndex: getHierarchicalIndexes,
+        onUpdate: (content) => {
+          onToCUpdate?.(content);
+        },
       }),
       Placeholder.configure({
         placeholder,
-        emptyEditorClass: 'is-editor-empty',
+        includeChildren: true,
+        showOnlyCurrent: false,
       }),
       Underline,
       TaskList,
@@ -85,6 +105,9 @@ export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for co
       }),
       Highlight.configure({
         multicolor: true,
+        HTMLAttributes: {
+          class: 'rounded-sm px-1',
+        },
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -102,12 +125,15 @@ export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for co
       Subscript,
       Superscript,
       TextStyle,
+      FontFamily,
+      FontSize,
       Color,
       // Custom extensions
       Callout,
       Toggle,
       MathBlock,
       MathInline,
+      DataTable,
       SlashCommands,
     ],
     content: content?.content || '',
@@ -116,7 +142,19 @@ export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for co
         class: 'tiptap prose prose-sm sm:prose lg:prose-lg max-w-none focus:outline-none min-h-[calc(100vh-200px)] px-4 py-2',
       },
     },
+    onCreate: ({ editor }) => {
+      setCounts({
+        characters: editor.storage.characterCount?.characters() ?? 0,
+        words: editor.storage.characterCount?.words() ?? 0,
+      });
+    },
     onUpdate: ({ editor }) => {
+      // Trigger character count update
+      setCounts({
+        characters: editor.storage.characterCount?.characters() ?? 0,
+        words: editor.storage.characterCount?.words() ?? 0,
+      });
+
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -126,14 +164,41 @@ export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for co
     },
   });
 
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkDialogConfig, setLinkDialogConfig] = useState<{
+    title: string;
+    initialValue: string;
+    type: 'link' | 'image';
+    onConfirm: (url: string) => void;
+  }>({
+    title: "Insert Link",
+    initialValue: "",
+    type: 'link',
+    onConfirm: () => { },
+  });
+
+  const openLinkDialog = (config: typeof linkDialogConfig) => {
+    setLinkDialogConfig(config);
+    setLinkDialogOpen(true);
+  };
+
   useEffect(() => {
-    if (editor && content?.content !== undefined) {
-      const currentContent = editor.getHTML();
-      if (currentContent !== content.content) {
-        editor.commands.setContent(content.content || '');
-      }
+    const handleOpenDialog = (e: any) => {
+      openLinkDialog(e.detail);
+    };
+
+    window.addEventListener('open-link-dialog', handleOpenDialog);
+    return () => window.removeEventListener('open-link-dialog', handleOpenDialog);
+  }, []);
+
+  useImperativeHandle(ref, () => editor);
+
+  useEffect(() => {
+    if (editor && pageId) {
+      const targetContent = content?.content || '';
+      editor.commands.setContent(targetContent);
     }
-  }, [editor, content?.content]);
+  }, [editor, pageId]); // Reset content only when pageId changes
 
   useEffect(() => {
     return () => {
@@ -152,11 +217,22 @@ export function NotionEditor({ content, onUpdate, placeholder = "Type '/' for co
   return (
     <div className="relative">
       <BubbleToolbar editor={editor} />
+      <TableBubbleMenu editor={editor} />
+      <ContentItemMenu editor={editor} />
       <EditorContent editor={editor} />
+
+      <LinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        title={linkDialogConfig.title}
+        initialValue={linkDialogConfig.initialValue}
+        type={linkDialogConfig.type}
+        onConfirm={linkDialogConfig.onConfirm}
+      />
       {/* Character count footer */}
-      <div className="fixed bottom-4 right-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md border">
-        {characterCount?.characters()} characters · {characterCount?.words()} words
+      <div className="fixed bottom-4 right-4 z-50 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md border shadow-sm pointer-events-none">
+        {counts.characters} characters · {counts.words} words
       </div>
     </div>
   );
-}
+});

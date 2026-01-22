@@ -2,19 +2,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePages } from '@/hooks/usePages';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/sidebar/AppSidebar';
 import { NotionEditor } from '@/components/editor/NotionEditor';
 import { PageHeader } from '@/components/PageHeader';
 import { AIChatSidebar } from '@/components/ai/AIChatSidebar';
 import { Button } from '@/components/ui/button';
-import { Sparkles, FileText, Loader2 } from 'lucide-react';
+import { Sparkles, FileText, Loader2, ListTree } from 'lucide-react';
+import { TableOfContents } from '@/components/editor/components/TableOfContents';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from '@/components/ui/drawer';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 export default function Workspace() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const {
     pages,
     loading: pagesLoading,
@@ -25,11 +37,16 @@ export default function Workspace() {
     toggleFavorite,
     getPageById,
     getChildPages,
-    getFavoritePages
+    getFavoritePages,
+    trash,
+    restorePage,
+    deletePagePermanently
   } = usePages();
 
   const [currentPageId, setCurrentPageId] = useState<string | null>(null);
   const [isAISidebarOpen, setIsAISidebarOpen] = useState(false);
+  const [isToCOpen, setIsToCOpen] = useState(true);
+  const [tocItems, setTocItems] = useState<any[]>([]);
   const editorRef = useRef<any>(null);
 
   // Redirect if not logged in
@@ -92,6 +109,7 @@ export default function Workspace() {
   const handleInsertContent = (content: string) => {
     // This will be passed to the editor to insert AI-generated content
     if (editorRef.current) {
+      editorRef.current.commands.focus();
       editorRef.current.commands.insertContent(content);
     }
   };
@@ -108,7 +126,7 @@ export default function Workspace() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="h-screen overflow-hidden flex w-full">
         <AppSidebar
           pages={pages}
           currentPageId={currentPageId}
@@ -119,30 +137,47 @@ export default function Workspace() {
           onToggleFavorite={toggleFavorite}
           getChildPages={getChildPages}
           getFavoritePages={getFavoritePages}
+          trash={trash}
+          onRestorePage={restorePage}
+          onDeletePagePermanently={deletePagePermanently}
         />
 
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 relative z-20">
           <header className="h-12 flex items-center justify-between px-4 border-b bg-background">
             <SidebarTrigger />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsAISidebarOpen(!isAISidebarOpen)}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              AI Assistant
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAISidebarOpen(!isAISidebarOpen)}
+                className={cn("gap-2", isAISidebarOpen && "bg-accent")}
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">AI Assistant</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsToCOpen(!isToCOpen)}
+                className={cn("gap-2", isToCOpen && "bg-accent")}
+              >
+                <ListTree className="h-4 w-4" />
+                <span className="hidden sm:inline">Outline</span>
+              </Button>
+            </div>
           </header>
 
           <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               {currentPage ? (
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-3xl mx-auto px-10 sm:px-4 md:px-0">
                   <PageHeader page={currentPage} onUpdatePage={updatePage} />
                   <NotionEditor
+                    ref={editorRef}
                     content={currentPage.content}
                     onUpdate={(content) => updatePage(currentPage.id, { content })}
+                    onToCUpdate={setTocItems}
+                    pageId={currentPage.id}
                   />
                 </div>
               ) : (
@@ -159,6 +194,35 @@ export default function Workspace() {
               )}
             </div>
 
+            {/* Desktop Outline Sidebar */}
+            {isDesktop && isToCOpen && currentPage && (
+              <aside className="w-64 border-l bg-background shrink-0 overflow-y-auto">
+                <TableOfContents items={tocItems} editor={editorRef.current} />
+              </aside>
+            )}
+
+            {/* Mobile Outline Drawer */}
+            {!isDesktop && (
+              <Drawer open={isToCOpen} onOpenChange={setIsToCOpen} direction="right">
+                <DrawerContent className="w-3/4 max-w-sm">
+                  <DrawerHeader className="flex flex-row items-center justify-between">
+                    <DrawerTitle className="flex items-center gap-2">
+                      <ListTree className="h-5 w-5 text-primary" />
+                      Outline
+                    </DrawerTitle>
+                    <DrawerClose asChild>
+                      <Button variant="ghost" size="sm">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </DrawerClose>
+                  </DrawerHeader>
+                  <div className="flex-1 overflow-y-auto">
+                    <TableOfContents items={tocItems} editor={editorRef.current} />
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            )}
+
             <AIChatSidebar
               isOpen={isAISidebarOpen}
               onClose={() => setIsAISidebarOpen(false)}
@@ -170,3 +234,4 @@ export default function Workspace() {
     </SidebarProvider>
   );
 }
+

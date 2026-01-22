@@ -22,11 +22,15 @@ export function usePages() {
   const { user } = useAuth();
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trash, setTrash] = useState<Page[]>([]);
+  const [trashLoading, setTrashLoading] = useState(true);
 
   const fetchPages = useCallback(async () => {
     if (!user) {
       setPages([]);
+      setTrash([]);
       setLoading(false);
+      setTrashLoading(false);
       return;
     }
 
@@ -34,16 +38,21 @@ export function usePages() {
       const { data, error } = await supabase
         .from('pages')
         .select('*')
-        .eq('is_archived', false)
         .order('position', { ascending: true });
 
       if (error) throw error;
-      setPages(data || []);
+
+      const activePages = (data || []).filter(p => !p.is_archived);
+      const archivedPages = (data || []).filter(p => p.is_archived);
+
+      setPages(activePages);
+      setTrash(archivedPages);
     } catch (error: any) {
       console.error('Error fetching pages:', error);
       toast.error('Failed to load pages');
     } finally {
       setLoading(false);
+      setTrashLoading(false);
     }
   }, [user]);
 
@@ -68,7 +77,7 @@ export function usePages() {
         .single();
 
       if (error) throw error;
-      
+
       setPages(prev => [...prev, data]);
       return data;
     } catch (error: any) {
@@ -105,10 +114,52 @@ export function usePages() {
 
       if (error) throw error;
 
-      setPages(prev => prev.filter(page => page.id !== id));
+      const pageToDelete = pages.find(p => p.id === id);
+      if (pageToDelete) {
+        setPages(prev => prev.filter(page => page.id !== id));
+        setTrash(prev => [{ ...pageToDelete, is_archived: true }, ...prev]);
+      }
     } catch (error: any) {
       console.error('Error deleting page:', error);
       toast.error('Failed to delete page');
+    }
+  };
+
+  const restorePage = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('pages')
+        .update({ is_archived: false })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      const pageToRestore = trash.find(p => p.id === id);
+      if (pageToRestore) {
+        setTrash(prev => prev.filter(page => page.id !== id));
+        setPages(prev => [...prev, { ...pageToRestore, is_archived: false }]);
+      }
+      toast.success('Page restored');
+    } catch (error: any) {
+      console.error('Error restoring page:', error);
+      toast.error('Failed to restore page');
+    }
+  };
+
+  const deletePagePermanently = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('pages')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTrash(prev => prev.filter(page => page.id !== id));
+      toast.success('Page deleted permanently');
+    } catch (error: any) {
+      console.error('Error deleting page permanently:', error);
+      toast.error('Failed to delete page permanently');
     }
   };
 
@@ -148,7 +199,7 @@ export function usePages() {
     if (!page) return;
 
     const newValue = !page.is_favorite;
-    
+
     try {
       const { error } = await supabase
         .from('pages')
@@ -182,10 +233,14 @@ export function usePages() {
 
   return {
     pages,
+    trash,
     loading,
+    trashLoading,
     createPage,
     updatePage,
     deletePage,
+    restorePage,
+    deletePagePermanently,
     duplicatePage,
     toggleFavorite,
     getPageById,

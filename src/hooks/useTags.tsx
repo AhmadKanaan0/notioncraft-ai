@@ -92,6 +92,26 @@ export function useTags() {
     }
   };
 
+  const updateTag = async (tagId: string, updates: { name?: string; color?: string }) => {
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .update(updates)
+        .eq('id', tagId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTags(prev => prev.map(t => (t.id === tagId ? data : t)));
+      return data;
+    } catch (error: any) {
+      console.error('Error updating tag:', error);
+      toast.error('Failed to update tag');
+      return null;
+    }
+  };
+
   const deleteTag = async (tagId: string) => {
     try {
       const { error } = await supabase.from('tags').delete().eq('id', tagId);
@@ -146,6 +166,7 @@ export function useTags() {
     pageTags,
     loading,
     createTag,
+    updateTag,
     deleteTag,
     addTagToPage,
     removeTagFromPage,
