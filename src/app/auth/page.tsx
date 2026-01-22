@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, Mail, KeyRound, Home } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -303,11 +304,22 @@ function AuthContent() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground text-xl font-bold">
-              N
-            </div>
+            <Image
+              src="/Notion-black.png"
+              alt="NotionCraft"
+              width={64}
+              height={64}
+              className="h-24 w-24 dark:hidden"
+            />
+            <Image
+              src="/Notion-white.png"
+              alt="NotionCraft"
+              width={64}
+              height={64}
+              className="h-24 w-24 hidden dark:block"
+            />
           </div>
-          <CardTitle className="text-2xl">Welcome to Notion Clone</CardTitle>
+          <CardTitle className="text-2xl">Welcome to NotionCraft AI</CardTitle>
           <CardDescription>
             Sign in to your account or create a new one
           </CardDescription>

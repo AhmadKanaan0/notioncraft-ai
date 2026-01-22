@@ -5,6 +5,7 @@ import { ArrowRight, FileText, Sparkles, Layers, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -51,10 +52,21 @@ const Index = () => {
             className={`flex items-center gap-2 sm:gap-3 transition-all duration-700 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
               }`}
           >
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm sm:text-lg shadow-lg">
-              N
-            </div>
-            <span className="text-lg sm:text-xl font-semibold hidden sm:inline">Notion Clone</span>
+            <Image
+              src="/Notion-black.png"
+              alt="NotionCraft"
+              width={40}
+              height={40}
+              className="h-8 w-8 sm:h-10 sm:w-10 dark:hidden"
+            />
+            <Image
+              src="/Notion-white.png"
+              alt="NotionCraft"
+              width={40}
+              height={40}
+              className="h-8 w-8 sm:h-10 sm:w-10 hidden dark:block"
+            />
+            <span className="text-lg sm:text-xl font-semibold hidden sm:inline">NotionCraft AI</span>
           </div>
           <div
             className={`flex items-center gap-1 sm:gap-3 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
