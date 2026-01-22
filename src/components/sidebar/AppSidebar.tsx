@@ -1,4 +1,4 @@
-import { Plus, SearchIcon, LogOut, FileText, Star, X, Settings } from 'lucide-react';
+import { Plus, SearchIcon, LogOut, FileText, Star, X, Settings, ChevronDown, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -10,8 +10,14 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton,
 } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PageTree } from './PageTree';
 import { TrashBox } from './TrashBox';
 import { Page } from '@/hooks/usePages';
@@ -22,7 +28,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../ui/input-group';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface AppSidebarProps {
   pages: Page[];
@@ -55,6 +61,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
+  const router = useRouter();
   const favoritePages = getFavoritePages();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -66,25 +73,49 @@ export function AppSidebar({
     )
     : [];
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/auth');
+  };
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="p-3">
-        <Link href="/workspace/profile" className="flex items-center gap-2 px-2 hover:bg-accent rounded-md p-1 transition-colors">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatarUrl || undefined} className="object-cover" />
-            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-              {displayName?.[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {displayName}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user?.email}
-            </p>
-          </div>
-        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 px-2 h-auto py-2 hover:bg-accent"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={profile?.avatarUrl || undefined} className="object-cover" />
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                  {displayName?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-medium truncate">
+                  {displayName}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.email}
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem onClick={() => router.push('/workspace/profile')}>
+              <User className="h-4 w-4 mr-2" />
+              Profile & Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarHeader>
 
       <SidebarContent>
@@ -218,24 +249,7 @@ export function AppSidebar({
             />
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/workspace/profile" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span>Settings & Profile</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <ThemeToggle />
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-              onClick={signOut}
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Sign out</span>
-            </SidebarMenuButton>
+            <ThemeToggle className="w-full" />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

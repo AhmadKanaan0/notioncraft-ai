@@ -64,6 +64,8 @@ export const ContentItemMenu = ({ editor }: ContentItemMenuProps) => {
                 <div
                     className="drag-handle h-7 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
                     title="Drag to reorder"
+                    draggable="true"
+                    data-drag-handle
                 >
                     <GripVertical className="h-4 w-4" />
                 </div>

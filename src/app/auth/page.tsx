@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,23 +8,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Loader2, Mail, KeyRound, Home } from 'lucide-react';
+import Link from 'next/link';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
-export default function Auth() {
-  const { signIn, signUp, user } = useAuth();
+function AuthContent() {
+  const { signIn, signUp, user, resetPasswordForEmail, updatePassword } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
-  // Redirect if already logged in
-  if (user) {
+  // Check if this is a password recovery callback
+  useEffect(() => {
+    const type = searchParams.get('type');
+    if (type === 'recovery') {
+      setIsRecoveryMode(true);
+    }
+  }, [searchParams]);
+
+  // Redirect if already logged in (unless in recovery mode)
+  if (user && !isRecoveryMode) {
     router.push('/');
     return null;
   }
@@ -91,8 +105,201 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      setErrors({ email: emailResult.error.issues[0].message });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await resetPasswordForEmail(email);
+    setLoading(false);
+
+    if (error) {
+      toast.error('Reset failed', {
+        description: error.message,
+      });
+    } else {
+      toast.success('Check your email', {
+        description: 'We sent you a password reset link. Please check your inbox.',
+      });
+      setShowForgotPassword(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) {
+      setErrors({ password: passwordResult.error.issues[0].message });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrors({ confirmPassword: 'Passwords do not match' });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await updatePassword(password);
+    setLoading(false);
+
+    if (error) {
+      toast.error('Reset failed', {
+        description: error.message,
+      });
+    } else {
+      toast.success('Password updated!', {
+        description: 'Your password has been successfully reset.',
+      });
+      setIsRecoveryMode(false);
+      router.push('/');
+    }
+  };
+
+  // Recovery mode: show password reset form
+  if (isRecoveryMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+                <KeyRound className="h-6 w-6" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Set New Password</CardTitle>
+            <CardDescription>
+              Enter your new password below
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrors(prev => ({ ...prev, password: undefined }));
+                  }}
+                />
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                  }}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                )}
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Forgot password view
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+                <Mail className="h-6 w-6" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Reset Password</CardTitle>
+            <CardDescription>
+              Enter your email and we'll send you a reset link
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email">Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setErrors(prev => ({ ...prev, email: undefined }));
+                  }}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Reset Link'
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowForgotPassword(false)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      {/* Back to home button */}
+      <div className="w-full max-w-md mb-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/">
+            <Home className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+        </Button>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -131,7 +338,17 @@ export default function Auth() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="signin-password">Password</Label>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="px-0 h-auto text-sm font-normal text-muted-foreground hover:text-primary"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
                   <Input
                     id="signin-password"
                     type="password"
@@ -205,5 +422,17 @@ export default function Auth() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function Auth() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }

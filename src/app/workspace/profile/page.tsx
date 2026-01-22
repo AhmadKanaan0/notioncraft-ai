@@ -7,18 +7,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
-import { ChevronLeft, Loader2, Save, Mail, User as UserIcon, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Loader2, Save, Mail, User as UserIcon, ShieldCheck, KeyRound, Eye, EyeOff, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
+const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user, updatePassword, signIn } = useAuth();
     const { profile, loading, updateProfile } = useProfile();
     const [displayName, setDisplayName] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const router = useRouter();
+
+    // Password change state
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordSaving, setPasswordSaving] = useState(false);
+    const [passwordErrors, setPasswordErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
 
     useEffect(() => {
         if (profile) {
@@ -32,6 +46,61 @@ export default function ProfilePage() {
         setSaving(true);
         await updateProfile({ displayName, avatarUrl });
         setSaving(false);
+    };
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordErrors({});
+
+        // Validate current password is provided
+        if (!currentPassword) {
+            setPasswordErrors({ currentPassword: 'Please enter your current password' });
+            return;
+        }
+
+        const passwordResult = passwordSchema.safeParse(newPassword);
+        if (!passwordResult.success) {
+            setPasswordErrors({ newPassword: passwordResult.error.issues[0].message });
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordErrors({ confirmPassword: 'Passwords do not match' });
+            return;
+        }
+
+        if (newPassword === currentPassword) {
+            setPasswordErrors({ newPassword: 'New password must be different from current password' });
+            return;
+        }
+
+        setPasswordSaving(true);
+
+        // First verify the current password by attempting to sign in
+        const { error: signInError } = await signIn(user?.email || '', currentPassword);
+
+        if (signInError) {
+            setPasswordSaving(false);
+            setPasswordErrors({ currentPassword: 'Current password is incorrect' });
+            return;
+        }
+
+        // Now update to the new password
+        const { error } = await updatePassword(newPassword);
+        setPasswordSaving(false);
+
+        if (error) {
+            toast.error('Password update failed', {
+                description: error.message,
+            });
+        } else {
+            toast.success('Password updated!', {
+                description: 'Your password has been changed successfully.',
+            });
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        }
     };
 
     if (loading && !profile) {
@@ -158,7 +227,145 @@ export default function ProfilePage() {
                         </Button>
                     </div>
                 </form>
+
+                {/* Password Change Section */}
+                <form onSubmit={handlePasswordChange} className="space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6 border-t">
+                        {/* Left Sidebar Info */}
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-semibold tracking-tight">Change Password</h2>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                Update your password to keep your account secure.
+                            </p>
+                        </div>
+
+                        {/* Right Content Card */}
+                        <div className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="currentPassword" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                        <Lock className="h-3.5 w-3.5" />
+                                        Current Password
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="currentPassword"
+                                            type={showCurrentPassword ? "text" : "password"}
+                                            placeholder="Enter your current password"
+                                            value={currentPassword}
+                                            onChange={(e) => {
+                                                setCurrentPassword(e.target.value);
+                                                setPasswordErrors(prev => ({ ...prev, currentPassword: undefined }));
+                                            }}
+                                            className="h-11 px-4 pr-12 text-base focus-visible:ring-primary/20 transition-all"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
+                                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        >
+                                            {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
+                                    {passwordErrors.currentPassword && (
+                                        <p className="text-sm text-destructive">{passwordErrors.currentPassword}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="newPassword" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                        <KeyRound className="h-3.5 w-3.5" />
+                                        New Password
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="newPassword"
+                                            type={showNewPassword ? "text" : "password"}
+                                            placeholder="Enter new password"
+                                            value={newPassword}
+                                            onChange={(e) => {
+                                                setNewPassword(e.target.value);
+                                                setPasswordErrors(prev => ({ ...prev, newPassword: undefined }));
+                                            }}
+                                            className="h-11 px-4 pr-12 text-base focus-visible:ring-primary/20 transition-all"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                        >
+                                            {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
+                                    {passwordErrors.newPassword && (
+                                        <p className="text-sm text-destructive">{passwordErrors.newPassword}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="confirmPassword" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                        <KeyRound className="h-3.5 w-3.5" />
+                                        Confirm New Password
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="confirmPassword"
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            placeholder="Confirm new password"
+                                            value={confirmPassword}
+                                            onChange={(e) => {
+                                                setConfirmPassword(e.target.value);
+                                                setPasswordErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                                            }}
+                                            className="h-11 px-4 pr-12 text-base focus-visible:ring-primary/20 transition-all"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
+                                    {passwordErrors.confirmPassword && (
+                                        <p className="text-sm text-destructive">{passwordErrors.confirmPassword}</p>
+                                    )}
+                                    <p className="text-[13px] text-muted-foreground leading-relaxed">
+                                        Password must be at least 6 characters long.
+                                    </p>
+                                </div>
+
+                                <div className="pt-4">
+                                    <Button
+                                        type="submit"
+                                        disabled={passwordSaving || !currentPassword || !newPassword || !confirmPassword}
+                                        className="h-11 px-6 gap-2 font-semibold"
+                                    >
+                                        {passwordSaving ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Updating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <KeyRound className="h-4 w-4" />
+                                                Update Password
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     );
 }
+

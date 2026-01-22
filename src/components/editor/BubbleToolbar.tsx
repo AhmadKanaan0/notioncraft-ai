@@ -198,12 +198,14 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
     children,
     title,
     disabled,
+    className,
   }: {
     onClick: () => void;
     isActive?: boolean;
     children: React.ReactNode;
     title: string;
     disabled?: boolean;
+    className?: string;
   }) => (
     <Button
       variant="ghost"
@@ -215,7 +217,8 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       }}
       className={cn(
         'h-8 w-8 p-0 hover:bg-accent',
-        isActive && 'bg-accent text-accent-foreground'
+        isActive && 'bg-accent text-accent-foreground',
+        className
       )}
       title={title}
     >

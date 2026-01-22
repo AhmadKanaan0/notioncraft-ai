@@ -60,8 +60,9 @@ export const NotionEditor = forwardRef<any, NotionEditorProps>(({ content, onUpd
         codeBlock: false,
       }),
       Dropcursor.configure({
-        color: 'hsl(var(--primary))',
-        width: 3,
+        color: '#3b82f6',
+        width: 4,
+        class: 'drop-cursor-line',
       }),
       TableOfContents.configure({
         getIndex: getHierarchicalIndexes,

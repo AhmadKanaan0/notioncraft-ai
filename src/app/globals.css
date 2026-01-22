@@ -625,45 +625,94 @@
   opacity: 0.5;
 }
 
-/* Drop indicator styling (Very Aggressive) */
-.tiptap .ProseMirror-dropcursor,
-.tiptap .drop-cursor,
+/* Drop indicator styling - Enhanced for visibility */
 .ProseMirror-dropcursor,
-.drop-cursor {
-  background-color: #3b82f6 !important; /* bright blue */
-  display: block !important;
-  height: 2px !important;
+.drop-cursor-line {
+  background-color: #3b82f6 !important;
+  height: 4px !important;
+  border-radius: 2px !important;
   z-index: 10000 !important;
   opacity: 1 !important;
   pointer-events: none !important;
+  position: relative !important;
+  display: block !important;
+  animation: dropCursorPulse 1s ease-in-out infinite !important;
 }
 
-/* For better positioning between blocks */
-.tiptap .ProseMirror-dropcursor::after {
+.ProseMirror-dropcursor::before,
+.drop-cursor-line::before {
   content: "" !important;
   position: absolute !important;
-  top: -4px !important;
-  left: 0 !important;
-  width: 10px !important;
-  height: 10px !important;
+  left: -5px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 12px !important;
+  height: 12px !important;
   background-color: #3b82f6 !important;
   border-radius: 50% !important;
-  box-shadow: 0 0 0 2px white !important;
+  box-shadow: 0 0 0 3px white, 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+
+@keyframes dropCursorPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 8px 2px hsl(var(--primary) / 0.3);
+  }
+}
+
+/* Dragging block styling */
+.ProseMirror [draggable="true"] {
+  cursor: grab;
+}
+
+.ProseMirror [draggable="true"]:active {
+  cursor: grabbing;
 }
 
 /* Global Drag Indicator for the page */
 body.is-dragging::after {
-  content: "Dragging Block...";
+  content: "Drop to move block here";
   position: fixed;
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-  background: black;
-  color: white;
-  padding: 0.5rem 1rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 0.75rem 1.5rem;
   border-radius: 2rem;
-  font-size: 0.75rem;
-  z-index: 9999;
-  opacity: 0.8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 99999;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   pointer-events: none;
+  animation: slideUpFade 0.2s ease-out;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Block being dragged ghost appearance */
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+
+/* Highlight potential drop targets */
+body.is-dragging .ProseMirror > * {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+body.is-dragging .ProseMirror > *:hover {
+  opacity: 0.7;
 }
