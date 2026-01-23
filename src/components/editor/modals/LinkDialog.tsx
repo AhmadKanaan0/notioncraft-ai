@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
+    ResponsiveModal,
+    ResponsiveModalContent,
+    ResponsiveModalHeader,
+    ResponsiveModalTitle,
+    ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,15 +47,15 @@ export function LinkDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+        <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+            <ResponsiveModalContent className="sm:max-w-md">
+                <ResponsiveModalHeader>
+                    <ResponsiveModalTitle className="flex items-center gap-2">
                         {type === 'link' ? <LinkIcon className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
                         {title}
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
+                    </ResponsiveModalTitle>
+                </ResponsiveModalHeader>
+                <div className="space-y-4 py-4 px-4 sm:px-0">
                     <div className="space-y-2">
                         <Label htmlFor="url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             {type === 'link' ? "Destination URL" : "Image Source URL"}
@@ -75,15 +75,15 @@ export function LinkDialog({
                         />
                     </div>
                 </div>
-                <DialogFooter className="sm:justify-end gap-2">
+                <ResponsiveModalFooter className="sm:justify-end gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
                     <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
                     <Button size="sm" onClick={handleConfirm} disabled={!url.trim()}>
                         {initialValue ? "Update" : "Insert"}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </ResponsiveModalFooter>
+            </ResponsiveModalContent>
+        </ResponsiveModal>
     );
 }

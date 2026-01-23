@@ -219,7 +219,11 @@ const commands: CommandItem[] = [
           type: 'link',
           initialValue: '',
           onConfirm: (url: string) => {
-            editor.chain().focus().deleteRange(range).setLink({ href: url }).run();
+            editor.chain().focus().deleteRange(range).insertContent({
+              type: 'text',
+              text: url,
+              marks: [{ type: 'link', attrs: { href: url } }]
+            }).run();
           }
         }
       });
@@ -382,14 +386,18 @@ export const SlashCommands = Extension.create({
                 return;
               }
 
-              popup[0].setProps({
-                getReferenceClientRect: props.clientRect,
-              });
+              if (popup && popup[0]) {
+                popup[0].setProps({
+                  getReferenceClientRect: props.clientRect,
+                });
+              }
             },
 
             onKeyDown(props: any) {
               if (props.event.key === 'Escape') {
-                popup[0].hide();
+                if (popup && popup[0]) {
+                  popup[0].hide();
+                }
                 return true;
               }
 
@@ -397,8 +405,12 @@ export const SlashCommands = Extension.create({
             },
 
             onExit() {
-              popup[0].destroy();
-              component.destroy();
+              if (popup && popup[0]) {
+                popup[0].destroy();
+              }
+              if (component) {
+                component.destroy();
+              }
             },
           };
         },

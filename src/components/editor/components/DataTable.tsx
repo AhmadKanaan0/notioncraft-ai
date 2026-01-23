@@ -516,10 +516,10 @@ export function DataTableComponent({
     return (
         <div className="w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden my-4" contentEditable={false}>
             {/* Header Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-3">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Select value={searchColumn} onValueChange={setSearchColumn}>
-                        <SelectTrigger className="h-9 w-[120px] text-sm">
+                        <SelectTrigger className="h-9 w-full text-sm sm:w-[120px]">
                             <SelectValue placeholder="All columns" />
                         </SelectTrigger>
                         <SelectContent>
@@ -531,26 +531,26 @@ export function DataTableComponent({
                             ))}
                         </SelectContent>
                     </Select>
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             placeholder="Search..."
                             value={globalFilter}
                             onChange={(e) => setGlobalFilter(e.target.value)}
-                            className="h-9 w-[160px] pl-8 text-sm"
+                            className="h-9 w-full pl-8 text-sm sm:w-[160px]"
                         />
                     </div>
                     {selectedCount > 0 && (
-                        <Button variant="destructive" size="sm" onClick={deleteSelectedRows} className="gap-1">
+                        <Button variant="destructive" size="sm" onClick={deleteSelectedRows} className="gap-1 w-full sm:w-auto">
                             <Trash2 className="h-4 w-4" />
                             Delete ({selectedCount})
                         </Button>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="gap-1">
+                            <Button variant="outline" size="sm" className="gap-1 flex-1 sm:flex-none">
                                 <Columns className="h-4 w-4" />
                                 Add Column
                             </Button>
@@ -571,7 +571,7 @@ export function DataTableComponent({
                             </div>
                         </PopoverContent>
                     </Popover>
-                    <Button variant="outline" size="sm" onClick={addRow} className="gap-1">
+                    <Button variant="outline" size="sm" onClick={addRow} className="gap-1 flex-1 sm:flex-none">
                         <PlusCircle className="h-4 w-4" />
                         Add Row
                     </Button>
@@ -580,7 +580,7 @@ export function DataTableComponent({
 
             {/* Table */}
             <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+                <table className="w-full min-w-[600px] border-collapse">
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id} className="border-b border-border bg-muted/50">
@@ -618,8 +618,8 @@ export function DataTableComponent({
             </div>
 
             {/* Pagination Footer */}
-            <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-3">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-between border-t border-border bg-muted/30 px-4 py-3 gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                     <div className="text-sm text-muted-foreground">
                         {selectedCount > 0 ? `${selectedCount} of ${data.length} row(s) selected` : `${data.length} row(s) total`}
                     </div>

@@ -4,10 +4,10 @@ import { Trash2, RotateCcw, X, Search, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
+    ResponsivePopover,
+    ResponsivePopoverContent,
+    ResponsivePopoverTrigger,
+} from '@/components/ui/responsive-popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -26,8 +26,8 @@ export function TrashBox({ trash, onRestore, onDeleteForever }: TrashBoxProps) {
     );
 
     return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
+        <ResponsivePopover open={isOpen} onOpenChange={setIsOpen}>
+            <ResponsivePopoverTrigger asChild>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -36,8 +36,8 @@ export function TrashBox({ trash, onRestore, onDeleteForever }: TrashBoxProps) {
                     <Trash2 className="mr-2 h-4 w-4" />
                     <span className="flex-1 text-left">Trash</span>
                 </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="start" side="right">
+            </ResponsivePopoverTrigger>
+            <ResponsivePopoverContent className="w-full sm:w-80 p-0" align="start" side="right">
                 <div className="p-3 border-b">
                     <div className='flex items-center gap-2 mb-2'>
                         <h3 className="font-medium text-sm">Trash</h3>
@@ -107,7 +107,7 @@ export function TrashBox({ trash, onRestore, onDeleteForever }: TrashBoxProps) {
                         </div>
                     )}
                 </ScrollArea>
-            </PopoverContent>
-        </Popover>
+            </ResponsivePopoverContent>
+        </ResponsivePopover>
     );
 }

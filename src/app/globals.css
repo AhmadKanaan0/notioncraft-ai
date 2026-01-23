@@ -171,6 +171,11 @@
   height: 0;
 }
 
+/* Hide placeholder in table cells */
+.tiptap table .is-editor-empty::before {
+  content: none;
+}
+
 .tiptap h1 {
   font-size: 2.5rem;
   font-weight: 700;
@@ -443,8 +448,17 @@
   z-index: 20;
 }
 
-.tiptap .tableWrapper {
+.tiptap .tableWrapper,
+.data-table-wrapper {
   overflow-x: auto;
+  margin: 1rem 0;
+  max-width: 100%;
+}
+
+.tiptap a {
+  color: hsl(var(--primary)) !important;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Slash command menu */

@@ -14,7 +14,7 @@ import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import DragHandle from '@tiptap/extension-drag-handle';
-import Image from '@tiptap/extension-image';
+import { ResizableImage } from './extensions/ResizableImage';
 import CharacterCount from '@tiptap/extension-character-count';
 import Dropcursor from '@tiptap/extension-dropcursor';
 import Subscript from '@tiptap/extension-subscript';
@@ -113,7 +113,7 @@ export const NotionEditor = forwardRef<any, NotionEditorProps>(({ content, onUpd
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      Image.configure({
+      ResizableImage.configure({
         inline: false,
         allowBase64: true,
         HTMLAttributes: {

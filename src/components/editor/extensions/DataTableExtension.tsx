@@ -16,7 +16,7 @@ declare module '@tiptap/core' {
 export const DataTable = Node.create({
     name: 'dataTable',
     group: 'block',
-    atom: true,
+    atom: true, // Leaf node, no content
     draggable: true,
 
     addAttributes() {
@@ -39,7 +39,7 @@ export const DataTable = Node.create({
     },
 
     renderHTML({ HTMLAttributes }) {
-        return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'data-table' }), 0];
+        return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'data-table' })];
     },
 
     addNodeView() {

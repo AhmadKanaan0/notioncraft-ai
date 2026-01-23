@@ -67,7 +67,7 @@ export function TableBubbleMenu({ editor }: TableBubbleMenuProps) {
         };
     }, [editor, updatePosition]);
 
-    if (!editor || !isVisible) {
+    if (!editor) {
         return null;
     }
 
@@ -106,7 +106,10 @@ export function TableBubbleMenu({ editor }: TableBubbleMenuProps) {
 
     return (
         <div
-            className="fixed z-50 flex items-center gap-0.5 p-1 rounded-lg bg-popover border border-border shadow-lg animate-fade-in"
+            className={cn(
+                "fixed z-50 flex items-center gap-0.5 p-1 rounded-lg bg-popover border border-border shadow-lg transition-opacity duration-200",
+                isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            )}
             style={{
                 top: position.top,
                 left: position.left,

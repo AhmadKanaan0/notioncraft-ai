@@ -177,7 +177,13 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
         type: 'link',
         initialValue: previousUrl,
         onConfirm: (url: string) => {
-          editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+          // If editing an existing link, extend selection to whole link
+          if (previousUrl) {
+            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+          } else {
+            // If creating new link, just set link on current selection
+            editor.chain().focus().setLink({ href: url }).run();
+          }
         }
       }
     });
