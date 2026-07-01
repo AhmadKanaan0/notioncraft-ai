@@ -38,6 +38,8 @@ export default function ProfilePage() {
 
     const pageRef = useRef<HTMLDivElement>(null);
     const heroRef = useRef<HTMLDivElement>(null);
+    const saveButtonRef = useRef<HTMLButtonElement>(null);
+    const passwordButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (profile) {
@@ -62,11 +64,17 @@ export default function ProfilePage() {
         return () => mm.revert();
     }, { dependencies: [loading], scope: pageRef });
 
+    const pulseSuccess = (el: HTMLElement | null) => {
+        if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        gsap.fromTo(el, { scale: 1 }, { scale: 1.05, duration: 0.15, yoyo: true, repeat: 1, ease: 'power1.inOut' });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         await updateProfile({ displayName, avatarUrl });
         setSaving(false);
+        pulseSuccess(saveButtonRef.current);
     };
 
     const handlePasswordChange = async (e: React.FormEvent) => {
@@ -118,6 +126,7 @@ export default function ProfilePage() {
             toast.success('Password updated!', {
                 description: 'Your password has been changed successfully.',
             });
+            pulseSuccess(passwordButtonRef.current);
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -235,6 +244,7 @@ export default function ProfilePage() {
                     {/* Footer Actions */}
                     <div className="flex justify-end pt-8 sticky bottom-8 z-30 pointer-events-none">
                         <Button
+                            ref={saveButtonRef}
                             type="submit"
                             disabled={saving}
                             className="h-12 px-8 gap-2.5 text-base font-semibold shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 pointer-events-auto rounded-full active:scale-95"
@@ -285,7 +295,13 @@ export default function ProfilePage() {
                                             variant="ghost"
                                             size="icon"
                                             className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
-                                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                            onClick={(e) => {
+                                                const icon = e.currentTarget.querySelector('svg');
+                                                if (icon && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                                                    gsap.fromTo(icon, { opacity: 0, rotate: -45 }, { opacity: 1, rotate: 0, duration: 0.2, ease: 'power1.out' });
+                                                }
+                                                setShowCurrentPassword(!showCurrentPassword);
+                                            }}
                                         >
                                             {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </Button>
@@ -317,7 +333,13 @@ export default function ProfilePage() {
                                             variant="ghost"
                                             size="icon"
                                             className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
-                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                            onClick={(e) => {
+                                                const icon = e.currentTarget.querySelector('svg');
+                                                if (icon && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                                                    gsap.fromTo(icon, { opacity: 0, rotate: -45 }, { opacity: 1, rotate: 0, duration: 0.2, ease: 'power1.out' });
+                                                }
+                                                setShowNewPassword(!showNewPassword);
+                                            }}
                                         >
                                             {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </Button>
@@ -349,7 +371,13 @@ export default function ProfilePage() {
                                             variant="ghost"
                                             size="icon"
                                             className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            onClick={(e) => {
+                                                const icon = e.currentTarget.querySelector('svg');
+                                                if (icon && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                                                    gsap.fromTo(icon, { opacity: 0, rotate: -45 }, { opacity: 1, rotate: 0, duration: 0.2, ease: 'power1.out' });
+                                                }
+                                                setShowConfirmPassword(!showConfirmPassword);
+                                            }}
                                         >
                                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </Button>
@@ -364,6 +392,7 @@ export default function ProfilePage() {
 
                                 <div className="pt-4">
                                     <Button
+                                        ref={passwordButtonRef}
                                         type="submit"
                                         disabled={passwordSaving || !currentPassword || !newPassword || !confirmPassword}
                                         className="h-11 px-6 gap-2 font-semibold"
