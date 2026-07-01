@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
@@ -34,12 +36,31 @@ export default function ProfilePage() {
     const [passwordSaving, setPasswordSaving] = useState(false);
     const [passwordErrors, setPasswordErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
 
+    const pageRef = useRef<HTMLDivElement>(null);
+    const heroRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         if (profile) {
             setDisplayName(profile.displayName || '');
             setAvatarUrl(profile.avatarUrl);
         }
     }, [profile]);
+
+    useGSAP(() => {
+        if (loading) return;
+        const mm = gsap.matchMedia();
+
+        mm.add('(prefers-reduced-motion: no-preference)', () => {
+            const cards = pageRef.current?.querySelectorAll('[data-animate-card]');
+            const tl = gsap.timeline();
+            tl.from(heroRef.current, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.out' });
+            if (cards && cards.length) {
+                tl.from(cards, { opacity: 0, y: 16, duration: 0.4, stagger: 0.08, ease: 'power2.out' }, '-=0.2');
+            }
+        });
+
+        return () => mm.revert();
+    }, { dependencies: [loading], scope: pageRef });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,7 +133,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50">
+        <div ref={pageRef} className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50">
             <div className="container max-w-3xl py-12 px-4 sm:px-6 lg:px-8 space-y-10">
                 {/* Header Navigation */}
                 <div className="flex items-center justify-between">
@@ -125,7 +146,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Hero section */}
-                <div className="space-y-2">
+                <div ref={heroRef} className="space-y-2">
                     <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">Account Settings</h1>
                     <p className="text-lg text-muted-foreground max-w-xl">
                         Customize your profile, manage your account preferences, and how others see you.
@@ -143,7 +164,7 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Right Content Card */}
-                        <div className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
+                        <div data-animate-card className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
                             <div className="p-8 space-y-8">
                                 <div className="flex flex-col items-center sm:flex-row sm:items-start gap-8">
                                     <AvatarUpload
@@ -184,7 +205,7 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Right Content Card */}
-                        <div className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
+                        <div data-animate-card className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
                             <div className="p-8 space-y-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="email" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -240,7 +261,7 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Right Content Card */}
-                        <div className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
+                        <div data-animate-card className="md:col-span-2 bg-background rounded-2xl border shadow-sm overflow-hidden">
                             <div className="p-8 space-y-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="currentPassword" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
