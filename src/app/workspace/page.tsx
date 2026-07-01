@@ -65,7 +65,10 @@ export default function Workspace() {
     }
   }, [user, authLoading, router]);
 
-  const currentPage = currentPageId ? getPageById(currentPageId) : null;
+  // Fall back to the first root page when none has been explicitly selected yet.
+  const rootPages = getChildPages(null);
+  const activePageId = currentPageId ?? rootPages[0]?.id ?? null;
+  const currentPage = activePageId ? getPageById(activePageId) : null;
 
   // Listen for AI sidebar open events
   useEffect(() => {
@@ -73,16 +76,6 @@ export default function Workspace() {
     window.addEventListener('open-ai-sidebar', handleOpenAI);
     return () => window.removeEventListener('open-ai-sidebar', handleOpenAI);
   }, []);
-
-  // Set first page as current if none selected
-  useEffect(() => {
-    if (!pagesLoading && pages.length > 0 && !currentPageId) {
-      const rootPages = getChildPages(null);
-      if (rootPages.length > 0) {
-        setCurrentPageId(rootPages[0].id);
-      }
-    }
-  }, [pages, pagesLoading, currentPageId, getChildPages]);
 
   useGSAP(() => {
     if (authLoading || pagesLoading) return;
@@ -101,7 +94,7 @@ export default function Workspace() {
   }, { dependencies: [authLoading, pagesLoading], scope: mainRef });
 
   useGSAP(() => {
-    if (!currentPageId) return;
+    if (!activePageId) return;
     const mm = gsap.matchMedia();
 
     mm.add('(prefers-reduced-motion: no-preference)', () => {
@@ -113,7 +106,7 @@ export default function Workspace() {
     });
 
     return () => mm.revert();
-  }, { dependencies: [currentPageId], scope: mainRef });
+  }, { dependencies: [activePageId], scope: mainRef });
 
   useGSAP(() => {
     if (!isDesktop || !isToCOpen || !currentPage) return;
@@ -135,10 +128,10 @@ export default function Workspace() {
 
   const handleDeletePage = async (pageId: string) => {
     await deletePage(pageId);
-    if (currentPageId === pageId) {
-      const rootPages = getChildPages(null);
-      if (rootPages.length > 0) {
-        const remainingPage = rootPages.find(p => p.id !== pageId);
+    if (activePageId === pageId) {
+      const remainingRootPages = getChildPages(null);
+      if (remainingRootPages.length > 0) {
+        const remainingPage = remainingRootPages.find(p => p.id !== pageId);
         setCurrentPageId(remainingPage?.id || null);
       } else {
         setCurrentPageId(null);
@@ -185,7 +178,7 @@ export default function Workspace() {
       <div className="h-screen overflow-hidden flex w-full">
         <AppSidebar
           pages={pages}
-          currentPageId={currentPageId}
+          currentPageId={activePageId}
           onSelectPage={setCurrentPageId}
           onCreatePage={handleCreatePage}
           onDeletePage={handleDeletePage}
