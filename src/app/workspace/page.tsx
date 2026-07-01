@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import { useAuth } from '@/hooks/useAuth';
 import { usePages } from '@/hooks/usePages';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -48,6 +50,8 @@ export default function Workspace() {
   const [isToCOpen, setIsToCOpen] = useState(true);
   const [tocItems, setTocItems] = useState<any[]>([]);
   const editorRef = useRef<any>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -72,6 +76,36 @@ export default function Workspace() {
       }
     }
   }, [pages, pagesLoading, currentPageId, getChildPages]);
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      const header = mainRef.current?.querySelector('header');
+      if (!header) return;
+
+      gsap.timeline()
+        .from(header, { opacity: 0, y: -12, duration: 0.4, ease: 'power2.out' })
+        .from(contentRef.current, { opacity: 0, y: 12, duration: 0.4, ease: 'power2.out' }, '-=0.25');
+    });
+
+    return () => mm.revert();
+  }, { scope: mainRef });
+
+  useGSAP(() => {
+    if (!currentPageId) return;
+    const mm = gsap.matchMedia();
+
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.fromTo(
+        contentRef.current,
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' }
+      );
+    });
+
+    return () => mm.revert();
+  }, { dependencies: [currentPageId], scope: mainRef });
 
   const handleCreatePage = async (parentId?: string | null) => {
     const newPage = await createPage(parentId);
@@ -142,7 +176,7 @@ export default function Workspace() {
           onDeletePagePermanently={deletePagePermanently}
         />
 
-        <main className="flex-1 flex flex-col min-w-0 relative z-20">
+        <main ref={mainRef} className="flex-1 flex flex-col min-w-0 relative z-20">
           <header className="h-12 flex items-center justify-between px-4 border-b bg-background">
             <SidebarTrigger />
             <div className="flex items-center gap-2">
@@ -168,7 +202,7 @@ export default function Workspace() {
           </header>
 
           <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
+            <div ref={contentRef} className="flex-1 overflow-y-auto">
               {currentPage ? (
                 <div className="max-w-3xl mx-auto px-10 sm:px-4 md:px-0">
                   <PageHeader page={currentPage} onUpdatePage={updatePage} />
