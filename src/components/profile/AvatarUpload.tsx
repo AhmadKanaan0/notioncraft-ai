@@ -61,9 +61,9 @@ export function AvatarUpload({ url, onUpload, userId }: AvatarUploadProps) {
             onUpload(publicUrl);
             toast.success('Avatar updated');
             pulseAvatarSuccess();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error uploading avatar:', error);
-            toast.error(error.message || 'Error uploading avatar');
+            toast.error(error instanceof Error ? error.message : 'Error uploading avatar');
         } finally {
             setUploading(false);
         }
@@ -76,7 +76,7 @@ export function AvatarUpload({ url, onUpload, userId }: AvatarUploadProps) {
                 className="group relative cursor-pointer"
                 onClick={() => !uploading && fileInputRef.current?.click()}
             >
-                <div className="absolute inset-0 z-10 flex hidden items-center justify-center rounded-full bg-black/60 text-white transition-all group-hover:flex">
+                <div className="absolute inset-0 z-10 hidden items-center justify-center rounded-full bg-black/60 text-white transition-all group-hover:flex">
                     {uploading ? (
                         <Loader2 className="h-6 w-6 animate-spin" />
                     ) : (
