@@ -5,7 +5,7 @@ import { Editor } from '@tiptap/react';
 import { cn } from '@/lib/utils';
 import { TextSelection } from '@tiptap/pm/state';
 
-interface ToCItem {
+export interface ToCItem {
     id: string;
     level: number;
     textContent: string;

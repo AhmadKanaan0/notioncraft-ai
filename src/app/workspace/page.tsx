@@ -12,7 +12,8 @@ import { PageHeader } from '@/components/PageHeader';
 import { AIChatSidebar } from '@/components/ai/AIChatSidebar';
 import { Button } from '@/components/ui/button';
 import { Sparkles, FileText, Loader2, ListTree } from 'lucide-react';
-import { TableOfContents } from '@/components/editor/components/TableOfContents';
+import { TableOfContents, ToCItem } from '@/components/editor/components/TableOfContents';
+import type { Editor } from '@tiptap/react';
 import {
   Drawer,
   DrawerContent,
@@ -48,8 +49,9 @@ export default function Workspace() {
   const [currentPageId, setCurrentPageId] = useState<string | null>(null);
   const [isAISidebarOpen, setIsAISidebarOpen] = useState(false);
   const [isToCOpen, setIsToCOpen] = useState(true);
-  const [tocItems, setTocItems] = useState<any[]>([]);
-  const editorRef = useRef<any>(null);
+  const [tocItems, setTocItems] = useState<ToCItem[]>([]);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
+  const editorRef = useRef<Editor | null>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const aiButtonRef = useRef<HTMLButtonElement>(null);
@@ -235,7 +237,10 @@ export default function Workspace() {
                 <div className="max-w-3xl mx-auto px-10 sm:px-4 md:px-0">
                   <PageHeader page={currentPage} onUpdatePage={updatePage} />
                   <NotionEditor
-                    ref={editorRef}
+                    ref={(instance: Editor | null) => {
+                      editorRef.current = instance;
+                      setEditorInstance(instance);
+                    }}
                     content={currentPage.content}
                     onUpdate={(content) => updatePage(currentPage.id, { content })}
                     onToCUpdate={setTocItems}
@@ -259,7 +264,7 @@ export default function Workspace() {
             {/* Desktop Outline Sidebar */}
             {isDesktop && isToCOpen && currentPage && (
               <aside ref={outlineAsideRef} className="w-64 border-l bg-background shrink-0 overflow-y-auto">
-                <TableOfContents items={tocItems} editor={editorRef.current} />
+                <TableOfContents items={tocItems} editor={editorInstance} />
               </aside>
             )}
 
@@ -279,7 +284,7 @@ export default function Workspace() {
                     </DrawerClose>
                   </DrawerHeader>
                   <div className="flex-1 overflow-y-auto">
-                    <TableOfContents items={tocItems} editor={editorRef.current} />
+                    <TableOfContents items={tocItems} editor={editorInstance} />
                   </div>
                 </DrawerContent>
               </Drawer>
