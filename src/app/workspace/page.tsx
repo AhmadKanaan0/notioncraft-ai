@@ -83,6 +83,7 @@ export default function Workspace() {
   }, [pages, pagesLoading, currentPageId, getChildPages]);
 
   useGSAP(() => {
+    if (authLoading || pagesLoading) return;
     const mm = gsap.matchMedia();
 
     mm.add('(prefers-reduced-motion: no-preference)', () => {
@@ -95,7 +96,7 @@ export default function Workspace() {
     });
 
     return () => mm.revert();
-  }, { scope: mainRef });
+  }, { dependencies: [authLoading, pagesLoading], scope: mainRef });
 
   useGSAP(() => {
     if (!currentPageId) return;
