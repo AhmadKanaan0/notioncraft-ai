@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import { supabase } from '@/lib/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2, Camera, User } from 'lucide-react';
@@ -16,6 +18,20 @@ interface AvatarUploadProps {
 export function AvatarUpload({ url, onUpload, userId }: AvatarUploadProps) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const avatarRef = useRef<HTMLDivElement>(null);
+
+    useGSAP(() => {
+        const mm = gsap.matchMedia();
+        mm.add('(prefers-reduced-motion: no-preference)', () => {
+            gsap.from(avatarRef.current, { opacity: 0, scale: 0.85, duration: 0.4, ease: 'back.out(1.7)' });
+        });
+        return () => mm.revert();
+    }, { scope: avatarRef });
+
+    const pulseAvatarSuccess = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        gsap.fromTo(avatarRef.current, { scale: 1 }, { scale: 1.06, duration: 0.15, yoyo: true, repeat: 1, ease: 'power1.inOut' });
+    };
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -45,6 +61,7 @@ export function AvatarUpload({ url, onUpload, userId }: AvatarUploadProps) {
 
             onUpload(publicUrl);
             toast.success('Avatar updated');
+            pulseAvatarSuccess();
         } catch (error: any) {
             console.error('Error uploading avatar:', error);
             toast.error(error.message || 'Error uploading avatar');
@@ -56,6 +73,7 @@ export function AvatarUpload({ url, onUpload, userId }: AvatarUploadProps) {
     return (
         <div className="flex flex-col items-center gap-4">
             <div
+                ref={avatarRef}
                 className="group relative cursor-pointer"
                 onClick={() => !uploading && fileInputRef.current?.click()}
             >
