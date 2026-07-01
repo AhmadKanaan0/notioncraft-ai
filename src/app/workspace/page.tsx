@@ -52,6 +52,9 @@ export default function Workspace() {
   const editorRef = useRef<any>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const aiButtonRef = useRef<HTMLButtonElement>(null);
+  const tocButtonRef = useRef<HTMLButtonElement>(null);
+  const outlineAsideRef = useRef<HTMLElement>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -59,6 +62,8 @@ export default function Workspace() {
       router.push('/auth');
     }
   }, [user, authLoading, router]);
+
+  const currentPage = currentPageId ? getPageById(currentPageId) : null;
 
   // Listen for AI sidebar open events
   useEffect(() => {
@@ -107,6 +112,17 @@ export default function Workspace() {
     return () => mm.revert();
   }, { dependencies: [currentPageId], scope: mainRef });
 
+  useGSAP(() => {
+    if (!isDesktop || !isToCOpen || !currentPage) return;
+    const mm = gsap.matchMedia();
+
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.from(outlineAsideRef.current, { x: 24, opacity: 0, duration: 0.3, ease: 'power2.out' });
+    });
+
+    return () => mm.revert();
+  }, { dependencies: [isToCOpen, currentPage, isDesktop], scope: mainRef });
+
   const handleCreatePage = async (parentId?: string | null) => {
     const newPage = await createPage(parentId);
     if (newPage) {
@@ -148,7 +164,10 @@ export default function Workspace() {
     }
   };
 
-  const currentPage = currentPageId ? getPageById(currentPageId) : null;
+  const pulseButton = (el: HTMLElement | null) => {
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    gsap.fromTo(el, { scale: 0.92 }, { scale: 1, duration: 0.25, ease: 'back.out(3)' });
+  };
 
   if (authLoading || pagesLoading) {
     return (
@@ -181,18 +200,26 @@ export default function Workspace() {
             <SidebarTrigger />
             <div className="flex items-center gap-2">
               <Button
+                ref={aiButtonRef}
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsAISidebarOpen(!isAISidebarOpen)}
+                onClick={() => {
+                  setIsAISidebarOpen(!isAISidebarOpen);
+                  pulseButton(aiButtonRef.current);
+                }}
                 className={cn("gap-2", isAISidebarOpen && "bg-accent")}
               >
                 <Sparkles className="h-4 w-4" />
                 <span className="hidden sm:inline">AI Assistant</span>
               </Button>
               <Button
+                ref={tocButtonRef}
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsToCOpen(!isToCOpen)}
+                onClick={() => {
+                  setIsToCOpen(!isToCOpen);
+                  pulseButton(tocButtonRef.current);
+                }}
                 className={cn("gap-2", isToCOpen && "bg-accent")}
               >
                 <ListTree className="h-4 w-4" />
@@ -230,7 +257,7 @@ export default function Workspace() {
 
             {/* Desktop Outline Sidebar */}
             {isDesktop && isToCOpen && currentPage && (
-              <aside className="w-64 border-l bg-background shrink-0 overflow-y-auto">
+              <aside ref={outlineAsideRef} className="w-64 border-l bg-background shrink-0 overflow-y-auto">
                 <TableOfContents items={tocItems} editor={editorRef.current} />
               </aside>
             )}
