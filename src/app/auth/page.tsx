@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, Mail, KeyRound, Home } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -20,6 +24,7 @@ function AuthContent() {
   const { signIn, signUp, user, resetPasswordForEmail, updatePassword } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +34,38 @@ function AuthContent() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [tab, setTab] = useState<'signin' | 'signup'>('signin');
+
+  const view = isRecoveryMode ? 'recovery' : showForgotPassword ? 'forgot' : 'main';
+
+  // Entrance animation for the page chrome — runs once per view.
+  useGSAP(
+    () => {
+      const clearProps = 'opacity,transform';
+
+      gsap
+        .timeline({ defaults: { ease: 'power3.out' } })
+        .from('.gsap-back', { opacity: 0, x: -16, duration: 0.5, clearProps })
+        .from('.gsap-card', { opacity: 0, y: 24, duration: 0.6, clearProps }, '-=0.3')
+        .from('.gsap-logo', { opacity: 0, scale: 0.8, duration: 0.5, clearProps }, '-=0.35')
+        .from('.gsap-title', { opacity: 0, y: 12, duration: 0.5, clearProps }, '-=0.3')
+        .from('.gsap-subtitle', { opacity: 0, y: 12, duration: 0.5, clearProps }, '-=0.35');
+    },
+    { scope: containerRef, dependencies: [view] }
+  );
+
+  // Form fields replay whenever the active view or tab changes.
+  useGSAP(
+    () => {
+      const clearProps = 'opacity,transform';
+
+      gsap
+        .timeline({ defaults: { ease: 'power3.out' } })
+        .from('.gsap-field', { opacity: 0, y: 16, duration: 0.4, stagger: 0.08, clearProps })
+        .from('.gsap-submit', { opacity: 0, y: 12, duration: 0.4, clearProps }, '-=0.2');
+    },
+    { scope: containerRef, dependencies: [view, tab] }
+  );
 
   // Check if this is a password recovery callback
   useEffect(() => {
@@ -165,22 +202,22 @@ function AuthContent() {
   // Recovery mode: show password reset form
   if (isRecoveryMode) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+      <div ref={containerRef} className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="gsap-card w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
+            <div className="gsap-logo flex justify-center mb-4">
               <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
                 <KeyRound className="h-6 w-6" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Set New Password</CardTitle>
-            <CardDescription>
+            <CardTitle className="gsap-title text-2xl">Set New Password</CardTitle>
+            <CardDescription className="gsap-subtitle">
               Enter your new password below
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-2">
+              <div className="gsap-field space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
                 <Input
                   id="new-password"
@@ -196,7 +233,7 @@ function AuthContent() {
                   <p className="text-sm text-destructive">{errors.password}</p>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="gsap-field space-y-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
                 <Input
                   id="confirm-password"
@@ -212,7 +249,7 @@ function AuthContent() {
                   <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                 )}
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="gsap-submit w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -232,22 +269,22 @@ function AuthContent() {
   // Forgot password view
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+      <div ref={containerRef} className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="gsap-card w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
+            <div className="gsap-logo flex justify-center mb-4">
               <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
                 <Mail className="h-6 w-6" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Reset Password</CardTitle>
-            <CardDescription>
+            <CardTitle className="gsap-title text-2xl">Reset Password</CardTitle>
+            <CardDescription className="gsap-subtitle">
               Enter your email and we'll send you a reset link
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleForgotPassword} className="space-y-4">
-              <div className="space-y-2">
+              <div className="gsap-field space-y-2">
                 <Label htmlFor="forgot-email">Email</Label>
                 <Input
                   id="forgot-email"
@@ -263,7 +300,7 @@ function AuthContent() {
                   <p className="text-sm text-destructive">{errors.email}</p>
                 )}
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="gsap-submit w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -276,7 +313,7 @@ function AuthContent() {
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full"
+                className="gsap-submit w-full"
                 onClick={() => setShowForgotPassword(false)}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -290,9 +327,9 @@ function AuthContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+    <div ref={containerRef} className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       {/* Back to home button */}
-      <div className="w-full max-w-md mb-4">
+      <div className="gsap-back w-full max-w-md mb-4">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/">
             <Home className="h-4 w-4 mr-2" />
@@ -301,9 +338,9 @@ function AuthContent() {
         </Button>
       </div>
 
-      <Card className="w-full max-w-md">
+      <Card className="gsap-card w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+          <div className="gsap-logo flex justify-center mb-4">
             <Image
               src="/Notion-black.png"
               alt="NotionCraft"
@@ -319,21 +356,21 @@ function AuthContent() {
               className="h-24 w-24 hidden dark:block"
             />
           </div>
-          <CardTitle className="text-2xl">Welcome to NotionCraft AI</CardTitle>
-          <CardDescription>
+          <CardTitle className="gsap-title text-2xl">Welcome to NotionCraft AI</CardTitle>
+          <CardDescription className="gsap-subtitle">
             Sign in to your account or create a new one
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as 'signin' | 'signup')} className="w-full">
+            <TabsList className="gsap-field grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
+                <div className="gsap-field space-y-2">
                   <Label htmlFor="signin-email">Email</Label>
                   <Input
                     id="signin-email"
@@ -349,7 +386,7 @@ function AuthContent() {
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="gsap-field space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="signin-password">Password</Label>
                     <Button
@@ -375,7 +412,7 @@ function AuthContent() {
                     <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="gsap-submit w-full" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>
@@ -383,7 +420,7 @@ function AuthContent() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
+                <div className="gsap-field space-y-2">
                   <Label htmlFor="signup-name">Display Name (optional)</Label>
                   <Input
                     id="signup-name"
@@ -393,7 +430,7 @@ function AuthContent() {
                     onChange={(e) => setDisplayName(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="gsap-field space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
                     id="signup-email"
@@ -409,7 +446,7 @@ function AuthContent() {
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="gsap-field space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
@@ -425,7 +462,7 @@ function AuthContent() {
                     <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="gsap-submit w-full" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}
                 </Button>
               </form>

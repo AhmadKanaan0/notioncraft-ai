@@ -151,7 +151,7 @@ const Index = () => {
           </div>
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-3xl mx-auto pb-8">
             <FeatureCard
               icon={<FileText className="h-5 w-5" />}
               title="Rich Text Editor"
@@ -171,6 +171,32 @@ const Index = () => {
         </div>
 
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/Notion-black.png"
+              alt="NotionCraft"
+              width={24}
+              height={24}
+              className="h-6 w-6 dark:hidden"
+            />
+            <Image
+              src="/Notion-white.png"
+              alt="NotionCraft"
+              width={24}
+              height={24}
+              className="h-6 w-6 hidden dark:block"
+            />
+            <span className="text-sm font-semibold">NotionCraft AI</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} NotionCraft AI. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
